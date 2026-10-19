@@ -53,3 +53,11 @@ class Cart:
         if not self._items:
             return None
         return max(self._items.values(), key=lambda item: item.price)
+
+    def format_total(self) -> str:
+        return f"{self.total():.2f} UAH"
+
+    def total_with_promo(self, d: float) -> float:
+        x = self.total(d)
+        y = x * (1 - d / 100)
+        return round(y, 2)
