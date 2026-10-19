@@ -46,15 +46,26 @@ jobs:
           }
           json.dump(body, open("request.json", "w", encoding="utf-8"))
           PY
-          code=$(curl -sS -L --post301 --post302 --post303 -o response.json -w "%{http_code}" \
-            -X POST "https://models.github.ai/inference/chat/completions" \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            -H "Authorization: Bearer $GITHUB_TOKEN" \
-            -H "Content-Type: application/json" \
-            --data @request.json)
-          echo "HTTP status: $code"
-          if [ "$code" != "200" ]; then cat response.json; exit 1; fi
+          call_api() {
+            curl -sS -D headers.txt -o response.json -w "%{http_code}" -X POST "$1" \
+              -H "Accept: application/json" \
+              -H "Authorization: Bearer $GITHUB_TOKEN" \
+              -H "Content-Type: application/json" \
+              --data @request.json
+          }
+          code=$(call_api "https://models.github.ai/inference/chat/completions")
+          echo "models.github.ai -> HTTP $code"; head -c 300 response.json; echo
+          if ! python3 -c "import json;json.load(open('response.json'))['choices']" 2>/dev/null; then
+            echo "Falling back to models.inference.ai.azure.com"
+            python3 - <<'PY'
+          import json
+          b = json.load(open("request.json"))
+          b["model"] = b["model"].split("/")[-1]
+          json.dump(b, open("request.json", "w"))
+          PY
+            code=$(call_api "https://models.inference.ai.azure.com/chat/completions")
+            echo "models.inference.ai.azure.com -> HTTP $code"; head -c 300 response.json; echo
+          fi
           python3 - <<'PY'
           import json, os
           answer = json.load(open("response.json", encoding="utf-8"))["choices"][0]["message"]["content"]
