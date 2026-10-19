@@ -152,3 +152,10 @@ def test_most_expensive_uses_unit_price_not_sum(empty_cart: Cart) -> None:
     result = empty_cart.most_expensive()
     assert result is not None
     assert result.name == "book"
+
+
+# ---------- format_total ----------
+
+
+def test_format_total(cart: Cart) -> None:
+    assert cart.format_total() == "1000.00 UAH"
